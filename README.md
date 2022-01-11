@@ -1,3 +1,3 @@
-# Spotify Queue++
+# Spotify Queue+
 
-Source code for the Spotify Queue++ Chrome extension.
+Source code for the Spotify Queue+ Chrome extension.
