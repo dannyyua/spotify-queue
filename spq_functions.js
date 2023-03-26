@@ -9,7 +9,7 @@ var spQ_accessTokenExpiry = 0;
 
 // Detect when a context menu is opened, add the options
 new MutationObserver(function() {
-	const contextMenus = document.querySelectorAll('[class="SboKmDrCTZng7t4EgNoM"]');
+	const contextMenus = document.querySelectorAll("#context-menu > ul");
 	
 	for (const menu of contextMenus) {
 		const menuSecondButton = menu.children[1].firstChild.firstChild;
