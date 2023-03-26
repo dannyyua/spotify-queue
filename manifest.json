@@ -1,0 +1,21 @@
+{
+  "name": "Spotify Queue+",
+  "description": "Extends the functionality of the Spotify queue system.",
+  "icons": {  "16": "icon16.png",
+              "48": "icon48.png",
+              "128": "icon128.png" },
+  "version": "1.3",
+  "manifest_version": 2,
+  "content_scripts": [
+    {
+      "matches": ["https://open.spotify.com/*"],
+      "js": ["spq_functions.js", "spq_html_get.js"]
+    }
+  ],
+  "background": {
+    "scripts": ["spq_background.js"]
+  },
+  "permissions": [
+	  "webRequest", "https://open.spotify.com/*", "https://*.spotify.com/track-playback/v1/devices"
+  ]
+}
