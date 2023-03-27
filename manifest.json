@@ -5,7 +5,7 @@
               "48": "icon48.png",
               "128": "icon128.png" },
   "version": "1.3",
-  "manifest_version": 2,
+  "manifest_version": 3,
   "content_scripts": [
     {
       "matches": ["https://open.spotify.com/*"],
@@ -13,9 +13,12 @@
     }
   ],
   "background": {
-    "scripts": ["spq_background.js"]
+    "service_worker": "spq_background.js"
   },
+  "host_permissions": [
+    "https://open.spotify.com/*", "https://*.spotify.com/track-playback/v1/devices"
+  ],
   "permissions": [
-	  "webRequest", "https://open.spotify.com/*", "https://*.spotify.com/track-playback/v1/devices"
+	  "webRequest"
   ]
 }
