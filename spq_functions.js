@@ -5,6 +5,8 @@ var spQ_isUnlocked = false;
 var spQ_accessToken = "";
 var spQ_accessTokenExpiry = 0;
 
+const HIGHLIGHTED_CLASS = 'eRuZMo_HNLjb1IalIeRb';
+
 const Action = {
 	SendToTop: 0,
 	SendToBottom: 1,
@@ -18,6 +20,7 @@ const QueueType = {
 
 // Detect when a context menu is opened, add the options
 new MutationObserver(function() {
+	// Do nothing if the queue page is not open
 	if (!window.location.pathname.startsWith('/queue')) return;
 
 	const contextMenus = document.querySelectorAll("#context-menu > ul");
@@ -25,24 +28,30 @@ new MutationObserver(function() {
 	for (const menu of contextMenus) {
 		const menuSecondButton = menu.children[1].firstChild.firstChild;
 		const menuThirdButton = menu.children[2].firstChild.firstChild;
+
+		// Check if new buttons have been added yet
 		if (menuSecondButton.innerText === 'Remove from queue' && menuThirdButton.innerText !== 'Send to top') {
 			const queueList = getQueueSongs();
 			const nextList = getNextSongs();
 			var selectedIndex = -1;
 			
+			// Create 3 new cloned buttons
 			for (let i = 0; i < 3; i++) {
 				menu.insertBefore(menu.children[1].cloneNode(true), menu.children[2]);
 			}
 			
+			// Update cloned buttons text
 			menu.children[2].firstChild.firstChild.innerText = 'Send to top';
 			menu.children[3].firstChild.firstChild.innerText = 'Send to bottom';
 			menu.children[4].firstChild.firstChild.innerText = 'Shuffle queue';
 
+			// Check if user selected song in "Next in queue"
 			if (queueList) {
 				for (var i = 0; i < queueList.children.length; i++) {
-					if (queueList.children[i].firstChild.getAttribute("class") === "h4HgbO_Uu1JYg5UGANeQ wTUruPetkKdWAR1dd6w4 eRuZMo_HNLjb1IalIeRb"
-						|| queueList.children[i].firstChild.getAttribute("data-context-menu-open") === "true") {
-						selectedIndex = queueList.children[i].getAttribute("aria-rowindex")-1;
+					const row = queueList.children[i];
+					if (row.firstChild.classList.contains(HIGHLIGHTED_CLASS)
+						|| row.firstChild.getAttribute("data-context-menu-open") === "true") {
+						selectedIndex = row.ariaRowIndex-1;
 
 						menu.children[2].onclick = () => { updateQueue(QueueType.Queue, selectedIndex, Action.SendToTop) };
 						menu.children[3].onclick = () => { updateQueue(QueueType.Queue, selectedIndex, Action.SendToBottom) };
@@ -52,11 +61,13 @@ new MutationObserver(function() {
 				}
 			}
 		
+			// Check if user selected song in "Next up/Next from"
 			if (selectedIndex === -1) {
 				for (var i = 0; i < nextList.children.length; i++) {
-					if (nextList.children[i].firstChild.getAttribute("class") === "h4HgbO_Uu1JYg5UGANeQ wTUruPetkKdWAR1dd6w4 eRuZMo_HNLjb1IalIeRb"
-						|| nextList.children[i].firstChild.getAttribute("data-context-menu-open") === "true") {
-						selectedIndex = nextList.children[i].getAttribute("aria-rowindex")-1;
+					const row = nextList.children[i];
+					if (row.firstChild.classList.contains(HIGHLIGHTED_CLASS)
+						|| row.firstChild.getAttribute("data-context-menu-open") === "true") {
+						selectedIndex = row.ariaRowIndex-1;
 
 						menu.children[2].onclick = () => { updateQueue(QueueType.NextUp, selectedIndex, Action.SendToTop) };
 						menu.children[3].onclick = () => { updateQueue(QueueType.NextUp, selectedIndex, Action.SendToBottom) };
@@ -69,6 +80,7 @@ new MutationObserver(function() {
 	}
 }).observe(document.body, { childList: true });
 
+// Modify song list, then send API call to update queue
 async function updateQueue(queueType, index, action) {
 	const authToken = await getOAuthToken();
 	const subdomain = await getSubdomain();
@@ -96,6 +108,7 @@ async function updateQueue(queueType, index, action) {
 	});
 }
 
+// Modify song list locally before sending to API
 function updateSongList(list, index, action) {
 	if (action === Action.SendToTop) {
 		const temp = list[index];
@@ -121,6 +134,7 @@ function updateSongList(list, index, action) {
 	return list;
 }
 
+// Get current songs in queue and next up/next from
 async function getSongLists() {
 	let queueSongs = [];
 	let nextSongs = [];
@@ -150,6 +164,7 @@ async function getSongLists() {
 	return {queueSongs: queueSongs, nextSongs: nextSongs};
 }
 
+// Spotify sometimes locks use of the menu, this will allow the user to regain control of the added buttons
 async function unlockMenu() {
 	spQ_isUnlocked = true;
 	const authToken = await getOAuthToken();
