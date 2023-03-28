@@ -1,15 +1,25 @@
 var spQ_deviceId = "";
 var spQ_connectionId = "";
 var spQ_subdomain = "";
-var spQ_queueSongs = [];
-var spQ_nextSongs = [];
 var spQ_isUnlocked = false;
 var spQ_accessToken = "";
 var spQ_accessTokenExpiry = 0;
 
+const Action = {
+	SendToTop: 0,
+	SendToBottom: 1,
+	ShuffleQueue: 2
+};
+
+const QueueType = {
+	Queue: 0,
+	NextUp: 1
+};
+
 // Detect when a context menu is opened, add the options
 new MutationObserver(function() {
 	if (!window.location.pathname.startsWith('/queue')) return;
+
 	const contextMenus = document.querySelectorAll("#context-menu > ul");
 	
 	for (const menu of contextMenus) {
@@ -20,9 +30,9 @@ new MutationObserver(function() {
 			const nextList = getNextSongs();
 			var selectedIndex = -1;
 			
-			menu.insertBefore(menu.children[1].cloneNode(true), menu.children[2]);
-			menu.insertBefore(menu.children[1].cloneNode(true), menu.children[3]);
-			menu.insertBefore(menu.children[1].cloneNode(true), menu.children[4]);
+			for (let i = 0; i < 3; i++) {
+				menu.insertBefore(menu.children[1].cloneNode(true), menu.children[2]);
+			}
 			
 			menu.children[2].firstChild.firstChild.innerText = 'Send to top';
 			menu.children[3].firstChild.firstChild.innerText = 'Send to bottom';
@@ -34,9 +44,9 @@ new MutationObserver(function() {
 						|| queueList.children[i].firstChild.getAttribute("data-context-menu-open") === "true") {
 						selectedIndex = queueList.children[i].getAttribute("aria-rowindex")-1;
 
-						menu.children[2].onclick = () => { updateQueue(spQ_queueSongs, selectedIndex, 0) };
-						menu.children[3].onclick = () => { updateQueue(spQ_queueSongs, selectedIndex, 1) };
-						menu.children[4].onclick = () => { updateQueue(spQ_queueSongs, selectedIndex, 2) };
+						menu.children[2].onclick = () => { updateQueue(QueueType.Queue, selectedIndex, Action.SendToTop) };
+						menu.children[3].onclick = () => { updateQueue(QueueType.Queue, selectedIndex, Action.SendToBottom) };
+						menu.children[4].onclick = () => { updateQueue(QueueType.Queue, selectedIndex, Action.ShuffleQueue) };
 						break;
 					}
 				}
@@ -48,9 +58,9 @@ new MutationObserver(function() {
 						|| nextList.children[i].firstChild.getAttribute("data-context-menu-open") === "true") {
 						selectedIndex = nextList.children[i].getAttribute("aria-rowindex")-1;
 
-						menu.children[2].onclick = () => { updateQueue(spQ_nextSongs, selectedIndex, 0) };
-						menu.children[3].onclick = () => { updateQueue(spQ_nextSongs, selectedIndex, 1) };
-						menu.children[4].onclick = () => { updateQueue(spQ_nextSongs, selectedIndex, 2) };
+						menu.children[2].onclick = () => { updateQueue(QueueType.NextUp, selectedIndex, Action.SendToTop) };
+						menu.children[3].onclick = () => { updateQueue(QueueType.NextUp, selectedIndex, Action.SendToBottom) };
+						menu.children[4].onclick = () => { updateQueue(QueueType.NextUp, selectedIndex, Action.ShuffleQueue) };
 						break;
 					}
 				}
@@ -59,33 +69,21 @@ new MutationObserver(function() {
 	}
 }).observe(document.body, { childList: true });
 
-async function updateQueue(arr, index, action) {
+async function updateQueue(queueType, index, action) {
 	const authToken = await getOAuthToken();
 	const subdomain = await getSubdomain();
+	const songLists = await getSongLists();
 
-	await updateSongLists();
-
-	if (action === 0) {
-		const temp = arr[index];
-		arr.splice(index, 1);
-		arr.unshift(temp);
-	} else if (action === 1) {
-		const temp = arr[index];
-		arr.splice(index, 1);
-		arr.push(temp);
+	if (queueType === QueueType.Queue) {
+		updateSongList(songLists.queueSongs, index, action);
+	} else if (queueType === QueueType.NextUp) {
+		updateSongList(songLists.nextSongs, index, action);
 	} else {
-		// Fisher-Yates shuffle
-		var j, temp;
-		for (var i = arr.length-1; i > 0; i--) {
-			j = Math.floor(Math.random() * (i+1));
-			temp = arr[i];
-			arr[i] = arr[j];
-			arr[j] = temp;
-		}
+		console.log("Unknown queue type");
 	}
 
 	let body = {command: {
-		next_tracks: [...spQ_queueSongs, ...spQ_nextSongs],
+		next_tracks: [...songLists.queueSongs, ...songLists.nextSongs],
 		endpoint: 'set_queue',
 	}};
 	
@@ -98,13 +96,34 @@ async function updateQueue(arr, index, action) {
 	});
 }
 
-async function updateSongLists() {
-	while (spQ_queueSongs.length) {
-		spQ_queueSongs.pop();
+function updateSongList(list, index, action) {
+	if (action === Action.SendToTop) {
+		const temp = list[index];
+		list.splice(index, 1);
+		list.unshift(temp);
+	} else if (action === Action.SendToBottom) {
+		const temp = list[index];
+		list.splice(index, 1);
+		list.push(temp);
+	} else if (action === Action.ShuffleQueue) {
+		// Fisher-Yates shuffle
+		var j, temp;
+		for (var i = list.length-1; i > 0; i--) {
+			j = Math.floor(Math.random() * (i+1));
+			temp = list[i];
+			list[i] = list[j];
+			list[j] = temp;
+		}
+	} else {
+		console.log("Unknown action");
 	}
-	while (spQ_nextSongs.length) {
-		spQ_nextSongs.pop();
-	}
+
+	return list;
+}
+
+async function getSongLists() {
+	let queueSongs = [];
+	let nextSongs = [];
 
 	const authToken = await getOAuthToken();
 	const subdomain = await getSubdomain();
@@ -122,11 +141,13 @@ async function updateSongLists() {
 
 	for (const track of data["player_state"]["next_tracks"]) {
 		if (track["provider"] === "queue") {
-			spQ_queueSongs.push(track);
+			queueSongs.push(track);
 		} else if (track["provider"] === "context") {
-			spQ_nextSongs.push(track);
+			nextSongs.push(track);
 		}
 	}
+
+	return {queueSongs: queueSongs, nextSongs: nextSongs};
 }
 
 async function unlockMenu() {
