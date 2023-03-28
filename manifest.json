@@ -16,7 +16,7 @@
     "service_worker": "spq_background.js"
   },
   "host_permissions": [
-    "https://open.spotify.com/*", "https://*.spotify.com/track-playback/v1/devices"
+    "https://*.spotify.com/track-playback/v1/devices"
   ],
   "permissions": [
 	  "webRequest"
