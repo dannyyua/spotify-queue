@@ -17,14 +17,3 @@ function getNextSongs() {
 
 	return null;
 }
-
-function getMarketCode() {
-	const configText = document.querySelector("#config").innerText;
-	const toSearch = '"userCountry":"';
-	var marketCode = "";
-	for (var i = configText.indexOf(toSearch) + toSearch.length; configText[i] !== '"'; i++) {
-		marketCode += configText[i];
-	}
-	
-	return marketCode;
-}
