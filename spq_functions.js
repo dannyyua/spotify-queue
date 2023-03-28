@@ -83,24 +83,17 @@ async function updateQueue(arr, index, action) {
 			arr[j] = temp;
 		}
 	}
-	
-	var bodyText = '{"command":{"next_tracks":[';
-	if (spQ_queueSongs.length !== 0) {
-		bodyText += songArrToString(spQ_queueSongs);
-	}
-	if (spQ_nextSongs.length !== 0) {
-		if (spQ_queueSongs.length !== 0) {
-			bodyText += ","
-		}
-		bodyText += songArrToString(spQ_nextSongs);
-	}
-	bodyText += '],"endpoint":"set_queue"}}';
+
+	let body = {command: {
+		next_tracks: [...spQ_queueSongs, ...spQ_nextSongs],
+		endpoint: 'set_queue',
+	}};
 	
 	fetch("https://" + subdomain + ".spotify.com/connect-state/v1/player/command/from/" + spQ_deviceId + "/to/" + spQ_deviceId, {
 		"headers": {
 			"authorization": "Bearer " + authToken
 		},
-		"body": bodyText,
+		"body": JSON.stringify(body),
 		"method": "POST"
 	});
 }
@@ -129,21 +122,11 @@ async function updateSongLists() {
 
 	for (const track of data["player_state"]["next_tracks"]) {
 		if (track["provider"] === "queue") {
-			spQ_queueSongs.push(JSON.stringify(track));
+			spQ_queueSongs.push(track);
 		} else if (track["provider"] === "context") {
-			spQ_nextSongs.push(JSON.stringify(track));
+			spQ_nextSongs.push(track);
 		}
 	}
-}
-
-function songArrToString(arr) {
-	var fullString = "";
-	for (const songObj of arr) {
-		fullString += songObj;
-		fullString += ",";
-	}
-	fullString = fullString.slice(0, -1);
-	return fullString;
 }
 
 async function unlockMenu() {
