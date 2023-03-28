@@ -89,12 +89,12 @@ async function updateQueue(arr, index, action) {
 		endpoint: 'set_queue',
 	}};
 	
-	fetch("https://" + subdomain + ".spotify.com/connect-state/v1/player/command/from/" + spQ_deviceId + "/to/" + spQ_deviceId, {
-		"headers": {
-			"authorization": "Bearer " + authToken
+	fetch(`https://${subdomain}.spotify.com/connect-state/v1/player/command/from/${spQ_deviceId}/to/${spQ_deviceId}`, {
+		headers: {
+			authorization: `Bearer ${authToken}`
 		},
-		"body": JSON.stringify(body),
-		"method": "POST"
+		body: JSON.stringify(body),
+		method: "POST"
 	});
 }
 
@@ -109,13 +109,13 @@ async function updateSongLists() {
 	const authToken = await getOAuthToken();
 	const subdomain = await getSubdomain();
 
-	const response = await fetch("https://" + subdomain + ".spotify.com/connect-state/v1/devices/hobs_" + spQ_deviceId.slice(0, 35), {
-		"headers": {
-		  "authorization": "Bearer " + authToken,
+	const response = await fetch(`https://${subdomain}.spotify.com/connect-state/v1/devices/hobs_${spQ_deviceId.slice(0, 35)}`, {
+		headers: {
+		  authorization: `Bearer ${authToken}`,
 		  "x-spotify-connection-id": spQ_connectionId
 		},
-		"body": '{"member_type":"CONNECT_STATE","device":{"device_info":{"capabilities":{"can_be_player":false,"hidden":true,"needs_full_player_state":true}}}}',
-		"method": "PUT"
+		body: '{"member_type":"CONNECT_STATE","device":{"device_info":{"capabilities":{"can_be_player":false,"hidden":true,"needs_full_player_state":true}}}}',
+		method: "PUT"
 	  });
 	
 	const data = await response.json();
@@ -134,12 +134,12 @@ async function unlockMenu() {
 	const authToken = await getOAuthToken();
 	const subdomain = await getSubdomain();
 	
-	fetch("https://" + subdomain + ".spotify.com/connect-state/v1/connect/transfer/from/" + spQ_deviceId + "/to/" + spQ_deviceId, {
-	  "headers": {
-		"authorization": "Bearer " + authToken
+	fetch(`https://${subdomain}.spotify.com/connect-state/v1/connect/transfer/from/${spQ_deviceId}/to/${spQ_deviceId}`, {
+	  headers: {
+		authorization: `Bearer ${authToken}`
 	  },
-	  "body": '{"transfer_options":{"restore_paused":"pause"}}',
-	  "method": "POST"
+	  body: '{"transfer_options":{"restore_paused":"pause"}}',
+	  method: "POST"
 	}).then(function(response) {
 		if (!response.ok) {
 			setTimeout(() => { unlockMenu() }, 500);
