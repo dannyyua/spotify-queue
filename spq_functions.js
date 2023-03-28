@@ -9,6 +9,7 @@ var spQ_accessTokenExpiry = 0;
 
 // Detect when a context menu is opened, add the options
 new MutationObserver(function() {
+	if (!window.location.pathname.startsWith('/queue')) return;
 	const contextMenus = document.querySelectorAll("#context-menu > ul");
 	
 	for (const menu of contextMenus) {
@@ -190,14 +191,11 @@ async function getSubdomain() {
 }
 
 chrome.runtime.onMessage.addListener(
-	function(request) {
-		if (request.deviceId) {
-			spQ_deviceId = request.deviceId;
-			if (!spQ_isUnlocked) {
-				unlockMenu();
-			}
-		} else if (request.connectionId) {
-			spQ_connectionId = request.connectionId;
+	function(message) {
+		if (message.deviceId && message.connectionId) {
+			spQ_deviceId = message.deviceId;
+			spQ_connectionId = message.connectionId;
+			if (!spQ_isUnlocked) unlockMenu();
 		}
 	}
 );

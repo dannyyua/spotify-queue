@@ -10,31 +10,17 @@ function bytesToJson(bytes) {
 	return parsedJson;
 }
 
-// Used to obtain device id
+// Used to obtain device and connection IDs
 chrome.webRequest.onBeforeRequest.addListener(function(details) {
 	if (details.url.endsWith("spclient.spotify.com/track-playback/v1/devices")) {
-		deviceId = bytesToJson(details.requestBody.raw[0].bytes)["device"]["device_id"];
+		const data = bytesToJson(details.requestBody.raw[0].bytes);
+		const deviceId = data.device.device_id;
+		const connectionId = data.connection_id;
 		
 		chrome.tabs.query({url: "https://open.spotify.com/*"}, function(tabs) {
 			for (const tab of tabs) {
-				chrome.tabs.sendMessage(tab.id, {deviceId: deviceId});
+				chrome.tabs.sendMessage(tab.id, {deviceId: deviceId, connectionId: connectionId});
 			}
 		});
 	}
 }, { urls: ["<all_urls>"] }, ["requestBody"]);
-
-// Used to obtain connection id
-chrome.webRequest.onSendHeaders.addListener(function(details) {
-	if (details.url.includes("spclient.spotify.com/connect-state/v1/devices/hobs_")) {
-		for (const header of details.requestHeaders) {
-			if (header.name === "x-spotify-connection-id") {
-				chrome.tabs.query({url: "https://open.spotify.com/*"}, function(tabs) {
-					for (const tab of tabs) {
-						chrome.tabs.sendMessage(tab.id, {connectionId: header.value});
-					}
-				});
-				break;
-			}
-		}
-	}
-}, { urls: ["<all_urls>"] }, ["requestHeaders"]);
