@@ -26,56 +26,27 @@ new MutationObserver(function() {
 	const contextMenus = document.querySelectorAll("#context-menu > ul");
 	
 	for (const menu of contextMenus) {
-		const menuSecondButton = menu.children[1].firstChild.firstChild;
-		const menuThirdButton = menu.children[2].firstChild.firstChild;
+		// Get the index of the 'Remove from queue' button, used to determine valid menu
+		const rqIndx = [...menu.children].findIndex((c) => c.firstChild.firstChild.innerText === 'Remove from queue');
+		const nextButton = menu.children[rqIndx+1].firstChild.firstChild;
 
 		// Check if new buttons have been added yet
-		if (menuSecondButton.innerText === 'Remove from queue' && menuThirdButton.innerText !== 'Send to top') {
-			const queueList = getQueueSongs();
-			const nextList = getNextSongs();
-			var selectedIndex = -1;
-			
+		if (rqIndx !== -1 && nextButton.innerText !== 'Send to top') {
 			// Create 3 new cloned buttons
 			for (let i = 0; i < 3; i++) {
-				menu.insertBefore(menu.children[1].cloneNode(true), menu.children[2]);
+				menu.insertBefore(menu.children[rqIndx].cloneNode(true), menu.children[rqIndx+1]);
 			}
 			
 			// Update cloned buttons text
-			menu.children[2].firstChild.firstChild.innerText = 'Send to top';
-			menu.children[3].firstChild.firstChild.innerText = 'Send to bottom';
-			menu.children[4].firstChild.firstChild.innerText = 'Shuffle queue';
+			menu.children[rqIndx+1].firstChild.firstChild.innerText = 'Send to top';
+			menu.children[rqIndx+2].firstChild.firstChild.innerText = 'Send to bottom';
+			menu.children[rqIndx+3].firstChild.firstChild.innerText = 'Shuffle queue';
 
 			// Check if user selected song in "Next in queue"
-			if (queueList) {
-				for (var i = 0; i < queueList.children.length; i++) {
-					const row = queueList.children[i];
-					if (row.firstChild.classList.contains(HIGHLIGHTED_CLASS)
-						|| row.firstChild.getAttribute("data-context-menu-open") === "true") {
-						selectedIndex = row.ariaRowIndex-1;
-
-						menu.children[2].onclick = () => { updateQueue(QueueType.Queue, selectedIndex, Action.SendToTop) };
-						menu.children[3].onclick = () => { updateQueue(QueueType.Queue, selectedIndex, Action.SendToBottom) };
-						menu.children[4].onclick = () => { updateQueue(QueueType.Queue, selectedIndex, Action.ShuffleQueue) };
-						break;
-					}
-				}
-			}
+			let res = initButtons(QueueType.Queue, menu, rqIndx);
 		
 			// Check if user selected song in "Next up/Next from"
-			if (selectedIndex === -1) {
-				for (var i = 0; i < nextList.children.length; i++) {
-					const row = nextList.children[i];
-					if (row.firstChild.classList.contains(HIGHLIGHTED_CLASS)
-						|| row.firstChild.getAttribute("data-context-menu-open") === "true") {
-						selectedIndex = row.ariaRowIndex-1;
-
-						menu.children[2].onclick = () => { updateQueue(QueueType.NextUp, selectedIndex, Action.SendToTop) };
-						menu.children[3].onclick = () => { updateQueue(QueueType.NextUp, selectedIndex, Action.SendToBottom) };
-						menu.children[4].onclick = () => { updateQueue(QueueType.NextUp, selectedIndex, Action.ShuffleQueue) };
-						break;
-					}
-				}
-			}
+			if (res === -1) initButtons(QueueType.NextUp, menu, rqIndx);
 		}
 	}
 }).observe(document.body, { childList: true });
@@ -106,6 +77,37 @@ async function updateQueue(queueType, index, action) {
 		body: JSON.stringify(body),
 		method: "POST"
 	});
+}
+
+// Initialise buttons to become usable
+function initButtons(queueType, menu, rqIndx) {
+	let queue;
+	let selectedIndex = -1;
+
+	if (queueType === QueueType.Queue) {
+		queue = getQueueSongs();
+	} else if (queueType === QueueType.NextUp) {
+		queue = getNextSongs();
+	} else {
+		console.log("Unknown queue type");
+	}
+
+	if (!queue) return selectedIndex;
+
+	for (var i = 0; i < queue.children.length; i++) {
+		const row = queue.children[i];
+		if (row.firstChild.classList.contains(HIGHLIGHTED_CLASS)
+			|| row.firstChild.getAttribute("data-context-menu-open") === "true") {
+			selectedIndex = row.ariaRowIndex-1;
+
+			menu.children[rqIndx+1].onclick = () => { updateQueue(queueType, selectedIndex, Action.SendToTop) };
+			menu.children[rqIndx+2].onclick = () => { updateQueue(queueType, selectedIndex, Action.SendToBottom) };
+			menu.children[rqIndx+3].onclick = () => { updateQueue(queueType, selectedIndex, Action.ShuffleQueue) };
+			break;
+		}
+	}
+
+	return selectedIndex;
 }
 
 // Modify song list locally before sending to API
