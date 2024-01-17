@@ -6,11 +6,13 @@ var spQ_accessToken = "";
 var spQ_accessTokenExpiry = 0;
 
 const HIGHLIGHTED_CLASS = 'eRuZMo_HNLjb1IalIeRb';
+const FADED_CLASS = 'Svg-sc-ytk21e-0 ewCuAY';
 
 const Action = {
 	SendToTop: 0,
 	SendToBottom: 1,
-	ShuffleQueue: 2
+	ShuffleQueue: 2,
+	ReverseQueue: 3
 };
 
 const QueueType = {
@@ -26,30 +28,53 @@ new MutationObserver(function() {
 	const contextMenus = document.querySelectorAll("#context-menu > ul");
 	
 	for (const menu of contextMenus) {
-		// Get the index of the 'Remove from queue' button, used to determine valid menu
-		const rqIndx = [...menu.children].findIndex((c) => c.firstChild.firstChild.innerText === 'Remove from queue');
-		const nextButton = menu.children[rqIndx+1].firstChild.firstChild;
-
-		// Check if new buttons have been added yet
-		if (rqIndx !== -1 && nextButton.innerText !== 'Send to top') {
-			// Create 3 new cloned buttons
-			for (let i = 0; i < 3; i++) {
-				menu.insertBefore(menu.children[rqIndx].cloneNode(true), menu.children[rqIndx+1]);
-			}
-			
-			// Update cloned buttons text
-			menu.children[rqIndx+1].firstChild.firstChild.innerText = 'Send to top';
-			menu.children[rqIndx+2].firstChild.firstChild.innerText = 'Send to bottom';
-			menu.children[rqIndx+3].firstChild.firstChild.innerText = 'Shuffle queue';
-
-			// Check if user selected song in "Next in queue"
-			let res = initButtons(QueueType.Queue, menu, rqIndx);
-		
-			// Check if user selected song in "Next up/Next from"
-			if (res === -1) initButtons(QueueType.NextUp, menu, rqIndx);
-		}
+		updateMenu(menu);
 	}
 }).observe(document.body, { childList: true });
+
+// Add new options to the context menu
+function updateMenu(menu) {
+	// Get the index of the 'Remove from queue' button, used to determine valid menu
+	const rqIndx = [...menu.children].findIndex((c) => c.firstChild.children[1].innerText === 'Remove from queue');
+	const nextButton = menu.children[rqIndx+1].firstChild.children[1];
+
+	// Check if new buttons have been added yet
+	if (rqIndx !== -1 && nextButton.innerText !== 'Send to top') {
+		// Create 4 new cloned buttons
+		for (let i = 0; i < 4; i++) {
+			menu.insertBefore(menu.children[rqIndx].cloneNode(true), menu.children[rqIndx+1]);
+		}
+
+		const leftArrow = document.querySelector("[data-testid='top-bar-back-button']").firstChild;
+		const shuffleIcon = document.querySelector("[data-testid='control-button-shuffle']").firstChild;
+		const reverseIcon = document.querySelector("[data-testid='control-button-repeat']").firstChild;
+
+		// Update cloned buttons icons
+		menu.children[rqIndx+1].firstChild.firstChild.replaceWith(leftArrow.cloneNode(true));
+		menu.children[rqIndx+1].firstChild.firstChild.setAttribute('transform', 'rotate(90)');
+		menu.children[rqIndx+2].firstChild.firstChild.replaceWith(leftArrow.cloneNode(true));
+		menu.children[rqIndx+2].firstChild.firstChild.setAttribute('transform', 'rotate(-90)');
+		menu.children[rqIndx+3].firstChild.firstChild.replaceWith(shuffleIcon.cloneNode(true));
+		menu.children[rqIndx+4].firstChild.firstChild.replaceWith(reverseIcon.cloneNode(true));
+
+		// Update classes to match appearance with other buttons
+		for (let i = 1; i < 5; i++) {
+			menu.children[rqIndx+i].firstChild.firstChild.setAttribute('class', FADED_CLASS);
+		}
+		
+		// Update cloned buttons text
+		menu.children[rqIndx+1].firstChild.children[1].innerText = 'Send to top';
+		menu.children[rqIndx+2].firstChild.children[1].innerText = 'Send to bottom';
+		menu.children[rqIndx+3].firstChild.children[1].innerText = 'Shuffle queue';
+		menu.children[rqIndx+4].firstChild.children[1].innerText = 'Reverse queue';
+
+		// Check if user selected song in "Next in queue"
+		let res = initButtons(QueueType.Queue, menu, rqIndx);
+
+		// Check if user selected song in "Next up/Next from"
+		if (res === -1) initButtons(QueueType.NextUp, menu, rqIndx);
+	}
+}
 
 // Modify song list, then send API call to update queue
 async function updateQueue(queueType, index, action) {
@@ -103,6 +128,7 @@ function initButtons(queueType, menu, rqIndx) {
 			menu.children[rqIndx+1].onclick = () => { updateQueue(queueType, selectedIndex, Action.SendToTop) };
 			menu.children[rqIndx+2].onclick = () => { updateQueue(queueType, selectedIndex, Action.SendToBottom) };
 			menu.children[rqIndx+3].onclick = () => { updateQueue(queueType, selectedIndex, Action.ShuffleQueue) };
+			menu.children[rqIndx+4].onclick = () => { updateQueue(queueType, selectedIndex, Action.ReverseQueue) };
 			break;
 		}
 	}
@@ -128,6 +154,13 @@ function updateSongList(list, index, action) {
 			temp = list[i];
 			list[i] = list[j];
 			list[j] = temp;
+		}
+	} else if (action === Action.ReverseQueue) {
+		var temp;
+		for (var i = 0; i < list.length/2; i++) {
+			temp = list[i];
+			list[i] = list[list.length-i-1];
+			list[list.length-i-1] = temp;
 		}
 	} else {
 		console.log("Unknown action");
