@@ -5,7 +5,7 @@ var spQ_isUnlocked = false;
 var spQ_accessToken = "";
 var spQ_accessTokenExpiry = 0;
 
-const HIGHLIGHTED_CLASS = 'eRuZMo_HNLjb1IalIeRb';
+const HIGHLIGHTED_CLASS = 'nCwi6jOC9FEKO5tKAQKW';
 const FADED_CLASS = 'Svg-sc-ytk21e-0 ewCuAY';
 
 const Action = {
@@ -23,7 +23,7 @@ const QueueType = {
 // Detect when a context menu is opened, add the options
 new MutationObserver(function() {
 	// Do nothing if the queue page is not open
-	if (!window.location.pathname.startsWith('/queue')) return;
+	if (!getQueueSongs() && !getNextSongs()) return;
 
 	const contextMenus = document.querySelectorAll("#context-menu > ul");
 	
@@ -120,15 +120,15 @@ function initButtons(queueType, menu, rqIndx) {
 	if (!queue) return selectedIndex;
 
 	for (var i = 0; i < queue.children.length; i++) {
-		const row = queue.children[i];
+		const row = queue.children[i].firstChild;
 		if (row.firstChild.classList.contains(HIGHLIGHTED_CLASS)
 			|| row.firstChild.getAttribute("data-context-menu-open") === "true") {
-			selectedIndex = row.ariaRowIndex-1;
+			selectedIndex = row.ariaPosInSet;
 
-			menu.children[rqIndx+1].onclick = () => { updateQueue(queueType, selectedIndex, Action.SendToTop) };
-			menu.children[rqIndx+2].onclick = () => { updateQueue(queueType, selectedIndex, Action.SendToBottom) };
-			menu.children[rqIndx+3].onclick = () => { updateQueue(queueType, selectedIndex, Action.ShuffleQueue) };
-			menu.children[rqIndx+4].onclick = () => { updateQueue(queueType, selectedIndex, Action.ReverseQueue) };
+			menu.children[rqIndx+1].onclick = () => { updateQueue(queueType, selectedIndex, Action.SendToTop); menu.remove(); };
+			menu.children[rqIndx+2].onclick = () => { updateQueue(queueType, selectedIndex, Action.SendToBottom); menu.remove(); };
+			menu.children[rqIndx+3].onclick = () => { updateQueue(queueType, selectedIndex, Action.ShuffleQueue); menu.remove(); };
+			menu.children[rqIndx+4].onclick = () => { updateQueue(queueType, selectedIndex, Action.ReverseQueue); menu.remove(); };
 			break;
 		}
 	}
